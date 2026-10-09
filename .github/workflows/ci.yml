@@ -69,8 +69,11 @@ jobs:
       - name: Pytest without SciPy
         run: python -m pytest tests/ -q
 
+      # n=24 is the smallest size at which the pre-registered gate is
+      # meaningful (at n=16 the independent coupling is already close to the
+      # optimum, so the 30% reduction floor is not informative).
       - name: CLI smoke without SciPy
-        run: python -m otforge.cli run --n-source 16 --n-target 16 --seeds 0 --anneal-steps 4 --exact-backend numpy
+        run: python -m otforge.cli run --n-source 24 --n-target 24 --seeds 0,1 --anneal-steps 4 --exact-backend numpy
 
   secret-scan:
     name: secret-scan
