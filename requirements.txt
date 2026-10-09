@@ -1,0 +1,7 @@
+# otForge — minimum runtime requirements.
+#
+# NumPy is the ONLY hard dependency. The Jonker-Volgenant assignment solver
+# (exact Kantorovich LP), the log-domain Sinkhorn iterations and the fixed
+# support barycenter are all implemented in pure NumPy, so otForge delivers
+# exact, deterministic optimal transport with nothing else installed.
+numpy>=1.24

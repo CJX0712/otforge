@@ -1,0 +1,91 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  quality-and-tests:
+    name: quality-and-tests (py${{ matrix.python-version }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.10", "3.13"]
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: pip
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r requirements-dev.txt
+
+      - name: Ruff check
+        run: python -m ruff check otforge/ examples/ tests/
+
+      - name: Ruff format check
+        run: python -m ruff format --check otforge/ examples/ tests/
+
+      - name: Pytest
+        run: python -m pytest tests/ -q
+
+      - name: Demo smoke (gate + determinism)
+        run: python -m examples.run_demo
+        env:
+          OTFORGE_N_SOURCE: "24"
+          OTFORGE_N_TARGET: "24"
+          OTFORGE_SEEDS: "0,1"
+
+      - name: CLI smoke
+        run: python -m otforge.cli run --n-source 24 --n-target 24 --seeds 0,1
+
+  offline:
+    name: offline (no scipy)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+          cache: pip
+
+      - name: Install NumPy only
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install "numpy>=1.24" pytest
+
+      - name: Verify SciPy is genuinely absent
+        run: python -c "import importlib.util,sys; sys.exit(0 if importlib.util.find_spec('scipy') is None else 1)"
+
+      - name: Pytest without SciPy
+        run: python -m pytest tests/ -q
+
+      - name: CLI smoke without SciPy
+        run: python -m otforge.cli run --n-source 16 --n-target 16 --seeds 0 --anneal-steps 4 --exact-backend numpy
+
+  secret-scan:
+    name: secret-scan
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Scan for credentials
+        run: |
+          # Patterns are fully quantified and .github is excluded so this job
+          # cannot match its own command text.
+          if grep -rEn --exclude-dir=.github --exclude-dir=.git \
+              "(AKIA[0-9A-Z]{16}|ghp_[A-Za-z0-9]{20,}|github_pat_[A-Za-z0-9_]{20,}|sk-[A-Za-z0-9]{20,}|-----BEGIN [A-Z ]*PRIVATE KEY-----)" \
+              --include="*.py" --include="*.yml" --include="*.toml" --include="*.txt" --include="*.md" . ; then
+            echo "::error::Possible secret material detected in source tree."
+            exit 1
+          fi
+          echo "Secret scan OK."

@@ -1,0 +1,9 @@
+# Development / CI requirements (includes the Tier-0 accelerator and tooling).
+-r requirements.txt
+
+# Tier-0 accelerator: scipy.optimize.linear_sum_assignment for `emd_exact`.
+# Optional at runtime — otForge falls back to its own pure-NumPy solver.
+scipy>=1.10
+
+pytest>=7.4
+ruff>=0.5

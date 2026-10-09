@@ -1,0 +1,7 @@
+# Pinned environment used to produce the numbers in README.md / benchmark.json.
+# Regenerate with:  pip freeze > requirements.lock.txt
+numpy==2.5.3
+scipy==1.18.1
+pytest==9.1.1
+ruff==0.16.10
+# interpreter: CPython 3.13.14
